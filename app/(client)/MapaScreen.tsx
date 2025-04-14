@@ -4,27 +4,31 @@ import MapView, { Marker, Polyline, Circle, LatLng } from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as Device from 'expo-device';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { GeoPoint } from 'firebase/firestore';
+
+// Tu tipo real de Driver
+export type Driver = {
+  name: string;
+  plate: string;
+  status: string;
+  location: GeoPoint;
+  ruta: GeoPoint[];
+};
 
 export type RootStackParamList = {
   Home: undefined;
-  Mapa: { ruta: Ruta };
+  Mapa: { driver: Driver };
 };
-
-export interface Ruta {
-  id: string;
-  nombre: string;
-  descripcion: string;
-}
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Mapa'>;
 
 const MapaScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { ruta } = route.params;
+  const { driver } = route.params;
 
   const [userLocation, setUserLocation] = useState<LatLng | null>(null);
   const [busLocation, setBusLocation] = useState<LatLng>({
-    latitude: 12.136389,
-    longitude: -86.251389,
+    latitude: driver.location.latitude,
+    longitude: driver.location.longitude,
   });
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -33,7 +37,7 @@ const MapaScreen: React.FC<Props> = ({ route, navigation }) => {
 
     async function startWatchingLocation() {
       if (Platform.OS === 'android' && !Device.isDevice) {
-        setErrorMsg('Oops, esto no funciona en un emulador de Android. ¡Prueba en un dispositivo real!');
+        setErrorMsg('Esto no funciona en un emulador de Android.');
         return;
       }
 
@@ -46,8 +50,8 @@ const MapaScreen: React.FC<Props> = ({ route, navigation }) => {
       locationSubscription = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.High,
-          timeInterval: 2000, // cada 2 segundos
-          distanceInterval: 1, // o cuando se mueva al menos 1 metro
+          timeInterval: 2000,
+          distanceInterval: 1,
         },
         (location) => {
           setUserLocation({
@@ -60,7 +64,6 @@ const MapaScreen: React.FC<Props> = ({ route, navigation }) => {
 
     startWatchingLocation();
 
-    // Limpieza al desmontar
     return () => {
       if (locationSubscription) {
         locationSubscription.remove();
@@ -70,14 +73,30 @@ const MapaScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Simulación de movimiento del bus
   useEffect(() => {
+    if (driver.ruta.length === 0) return;
+  
+    let currentIndex = 0;
+  
     const interval = setInterval(() => {
-      setBusLocation((prev) => ({
-        latitude: prev.latitude + 0.0005,
-        longitude: prev.longitude + 0.0005,
-      }));
-    }, 3000);
+      const nextPoint = driver.ruta[currentIndex];
+  
+      setBusLocation({
+        latitude: nextPoint.latitude,
+        longitude: nextPoint.longitude,
+      });
+  
+      // Si llega al final, vuelve a empezar o se detiene
+      if (currentIndex < driver.ruta.length - 1) {
+        currentIndex++;
+      } else {
+        currentIndex = 0; // <-- Si quieres que vuelva a empezar, si no, usa clearInterval(interval)
+        // clearInterval(interval); // <-- para detenerlo cuando termina
+      }
+    }, 3000); // Cambia cada 3 segundos
+  
     return () => clearInterval(interval);
-  }, []);
+  }, [driver.ruta]);
+  
 
   return (
     <View style={styles.container}>
@@ -89,8 +108,8 @@ const MapaScreen: React.FC<Props> = ({ route, navigation }) => {
         <MapView
           style={styles.map}
           initialRegion={{
-            latitude: 12.136389,
-            longitude: -86.251389,
+            latitude: driver.location.latitude,
+            longitude: driver.location.longitude,
             latitudeDelta: 0.01,
             longitudeDelta: 0.01,
           }}
@@ -100,22 +119,23 @@ const MapaScreen: React.FC<Props> = ({ route, navigation }) => {
             <Marker coordinate={userLocation} title="Tú estás aquí" pinColor="blue" />
           )}
 
-          {/* Marker del bus */}
+          {/* Ubicación del bus */}
           <Marker
             coordinate={busLocation}
-            title={`Transporte - ${ruta.nombre}`}
+            title={`Transporte - ${driver.name}`}
             pinColor="red"
           />
 
+          {/* Círculo alrededor del bus */}
           <Circle
             center={busLocation}
-            radius={250} 
+            radius={250}
             strokeWidth={2}
             strokeColor="rgba(255, 87, 34, 0.8)"
             fillColor="rgba(255, 87, 34, 0.3)"
           />
 
-          {/* Línea entre el bus y el usuario */}
+          {/* Línea entre bus y usuario */}
           {userLocation && (
             <Polyline
               coordinates={[busLocation, userLocation]}
@@ -123,17 +143,30 @@ const MapaScreen: React.FC<Props> = ({ route, navigation }) => {
               strokeWidth={3}
             />
           )}
+
+          {/* Círculo alrededor del usuario */}
           {userLocation && (
             <Circle
-                center={userLocation}
-                radius={250} // radio de 250 metros
-                strokeWidth={2}
-                strokeColor="rgba(34, 156, 255, 0.8)"
-                fillColor="rgba(34, 82, 255, 0.3)"
+              center={userLocation}
+              radius={250}
+              strokeWidth={2}
+              strokeColor="rgba(34, 156, 255, 0.8)"
+              fillColor="rgba(34, 82, 255, 0.3)"
             />
-            )}
+          )}
+
+          {/* Ruta del driver */}
+          <Polyline
+            coordinates={driver.ruta.map((punto) => ({
+              latitude: punto.latitude,
+              longitude: punto.longitude,
+            }))}
+            strokeColor="#FF5722"
+            strokeWidth={4}
+          />
         </MapView>
       )}
+
       <Button title="Volver a lista" onPress={() => navigation.goBack()} />
     </View>
   );

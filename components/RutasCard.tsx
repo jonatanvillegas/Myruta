@@ -2,34 +2,36 @@ import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Driver } from '@/store/useClientStore';
 
 export type RootStackParamList = {
-    Home: undefined;
-    Mapa: { ruta: Ruta };
-  };
-  
-  export interface Ruta {
-    id: string;
-    nombre: string;
-    descripcion: string;
-  }
-  
+  Home: undefined;
+  Mapa: { driver: Driver };  // ← ahora pasamos un driver
+};
+
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 interface Props {
-  ruta: Ruta;
+  driver: Driver;
 }
 
-const RutasCard: React.FC<Props> = ({ ruta }) => {
+const RutasCard: React.FC<Props> = ({ driver }) => {
   const navigation = useNavigation<NavigationProp>();
 
   return (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate('Mapa', { ruta })}
+      onPress={() => navigation.navigate('Mapa', { driver })}
     >
-      <Text style={styles.nombre}>{ruta.nombre}</Text>
-      <Text style={styles.descripcion}>{ruta.descripcion}</Text>
+      <Text style={styles.nombre}>{driver.name}</Text>
+      <Text style={styles.descripcion}>Placa: {driver.plate}</Text>
+      <Text style={styles.descripcion}>Estado: {driver.status}</Text>
+      <Text style={styles.descripcion}>
+        Ubicación: {driver.location.latitude}, {driver.location.longitude}
+      </Text>
+      <Text style={styles.descripcion}>
+        Ruta con {driver.ruta.length} puntos
+      </Text>
     </TouchableOpacity>
   );
 };
@@ -45,6 +47,7 @@ const styles = StyleSheet.create({
   nombre: {
     fontSize: 18,
     fontWeight: 'bold',
+    marginBottom: 4,
   },
   descripcion: {
     fontSize: 14,

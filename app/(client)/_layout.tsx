@@ -1,18 +1,13 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from './home';
 import MapaScreen from './MapaScreen';
+import { Driver } from '@/store/useClientStore';
 
 export type RootStackParamList = {
     Home: undefined;
-    Mapa: { ruta: Ruta };
+    Mapa: { driver: Driver };
   };
-  
-  export interface Ruta {
-    id: string;
-    nombre: string;
-    descripcion: string;
-  }
-  
+    
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function ClientLayout() {

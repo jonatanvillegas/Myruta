@@ -1,32 +1,32 @@
-import React from 'react';
-import { FlatList, View, Text, StyleSheet } from 'react-native';
+import React, { useEffect } from 'react';
+import { FlatList, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import RutasCard from '@/components/RutasCard';
-
-export type RootStackParamList = {
-  Home: undefined;
-  Mapa: { ruta: Ruta };
-};
-
-export interface Ruta {
-  id: string;
-  nombre: string;
-  descripcion: string;
-}
+import { useClientStore } from '@/store/useClientStore';
 
 const HomeScreen: React.FC = () => {
-  const rutas: Ruta[] = [
-    { id: '1', nombre: 'Ruta A', descripcion: 'Ruta principal para el cliente' },
-    { id: '2', nombre: 'Ruta B', descripcion: 'Ruta alterna que conecta con otros puntos' },
-    { id: '3', nombre: 'Ruta C', descripcion: 'Ruta rápida para entrega express' },
-  ];
+  const { drivers, obtenerDrivers, loading } = useClientStore();
+
+  useEffect(() => {
+    obtenerDrivers();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={{ marginTop: 10 }}>Cargando conductores...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Bienvenido, Cliente</Text>
       <FlatList
-        data={rutas}
-        renderItem={({ item }) => <RutasCard ruta={item} />}
-        keyExtractor={(item) => item.id}
+        data={drivers}
+        renderItem={({ item }) => <RutasCard driver={item} />}
+        keyExtractor={(item) => item.plate}
+       showsVerticalScrollIndicator={false}
       />
     </View>
   );
@@ -43,6 +43,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     color: '#333',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

@@ -2,8 +2,15 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AdminScreen from './home';
 import CreateDriverScreen from './createDriver';
 import LoadRoute from './loadRoute';
+import Route from './driver';
 
-const Stack = createNativeStackNavigator();
+export type RootStackParamList = {
+  loadRoute: undefined;
+  createDriver: undefined;
+  home: undefined;
+  driver: { driverId: string };
+  };
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AdminNavigator: React.FC = () => {
   return (
@@ -11,6 +18,7 @@ const AdminNavigator: React.FC = () => {
       <Stack.Screen name="home" component={AdminScreen}  options={{ headerShown: false }}/>
       <Stack.Screen name="createDriver" component={CreateDriverScreen} />
       <Stack.Screen name="loadRoute" component={LoadRoute} />
+      <Stack.Screen name="driver" component={Route} />
     </Stack.Navigator>
   );
 };
