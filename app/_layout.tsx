@@ -7,33 +7,77 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useAuthStore } from '@/store/useAuthStore';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const { usuario, inicializarSesion, loading } = useAuthStore();
+
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
   useEffect(() => {
-    if (loaded) {
+    inicializarSesion();
+  }, []);
+
+  useEffect(() => {
+    if (loaded && !loading) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  }, [loaded, loading]);
 
-  if (!loaded) {
+  if (!loaded || loading) {
     return null;
   }
 
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
+
+  const renderStack = () => {
+    const theme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
+
+    if (!usuario) {
+      return (
+        <ThemeProvider value={theme}>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(auth)" />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      );
+    }
+    const roleScreens: Record<string, string> = {
+      client: "(client)",
+      driver: "(driver)",
+      admin: "(admin)"
+    };
+
+    const stackName = roleScreens[usuario.rol];
+
+    // Si el rol no existe en el objeto
+    if (!stackName) {
+      return (
+        <ThemeProvider value={theme}>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(auth)" />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      );
+    }
+
+    return (
+      <ThemeProvider value={theme}>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name={stackName} />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    );
+  };
+
+
+  return renderStack();
 }
